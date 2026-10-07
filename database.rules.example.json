@@ -1,0 +1,9 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "agenda":        { ".read": true, ".write": "auth != null" },
+    "oficinas":      { ".read": true, ".write": "auth != null" },
+    "aviso_urgente": { ".read": true, ".write": "auth != null" }
+  }
+}

@@ -1,17 +1,22 @@
 {
+  "id": "./",
   "name": "MDSRC San Roque - SRC CONECTA",
   "short_name": "SRC CONECTA",
+  "description": "Plataforma de atención al ciudadano de San Roque de Cumbaza",
+  "lang": "es-PE",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#00A350",
-  "description": "Plataforma de atención al ciudadano de San Roque de Cumbaza",
+  "categories": ["government", "utilities"],
   "icons": [
     {
       "src": "https://www.contrataciones.pe/organizaciones/licitaciones-municipalidad-de-san-roque-de-cumbaza.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

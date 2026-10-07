@@ -1,36 +1,79 @@
-// Cambiamos la versión de caché para forzar la actualización
-const CACHE_NAME = 'src-conecta-v1';
+// Service worker del portal. Sube VERSION cada vez que cambies archivos del "shell" para forzar la actualización.
+const VERSION = 'v1.1.0';
+const CACHE = `src-conecta-${VERSION}`;
 
-const assets = [
+// Archivos propios que hacen funcionar la app sin conexión.
+const SHELL = [
   './',
   './index.html',
   './manifest.json',
-  'https://www.contrataciones.pe/organizaciones/licitaciones-municipalidad-de-san-roque-de-cumbaza.png'
+  './css/styles.css',
+  './assets/vendor/fontawesome/css/all.min.css',
+  './assets/vendor/fontawesome/webfonts/fa-solid-900.woff2',
+  './assets/vendor/fontawesome/webfonts/fa-brands-400.woff2',
+  './assets/vendor/fontawesome/webfonts/fa-regular-400.woff2',
+  './assets/fonts/inter-latin-400-normal.woff2',
+  './assets/fonts/inter-latin-600-normal.woff2',
+  './assets/fonts/inter-latin-800-normal.woff2',
+  './assets/fonts/inter-latin-900-normal.woff2',
+  './data/tramites.json',
+  './js/app.js',
+  './js/agenda.js',
+  './js/avisos.js',
+  './js/config.js',
+  './js/estado.js',
+  './js/firebase.js',
+  './js/horario.js',
+  './js/modal.js',
+  './js/oficinas.js',
+  './js/reporte.js',
+  './js/tabs.js',
+  './js/tramites.js',
+  './js/utils.js',
 ];
 
-self.addEventListener('install', (e) => {
-  self.skipWaiting(); 
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('SRC CONECTA: Sistema cargado');
-      return cache.addAll(assets);
-    })
+self.addEventListener('install', (event) => {
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((claves) => Promise.all(claves.filter((c) => c !== CACHE).map((c) => caches.delete(c))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
-});
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
 
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
+  // Todo lo externo (Firebase, logo, WhatsApp) va directo a la red: los datos en vivo nunca se sirven viejos.
+  if (url.origin !== self.location.origin) return;
+
+  // Páginas: red primero (siempre lo más nuevo); sin red, la versión guardada.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Archivos propios: devolver lo guardado al instante y actualizarlo en segundo plano.
+  event.respondWith(
+    caches.match(request).then((guardado) => {
+      const red = fetch(request)
+        .then((respuesta) => {
+          if (respuesta.ok) {
+            const copia = respuesta.clone();
+            caches.open(CACHE).then((c) => c.put(request, copia));
+          }
+          return respuesta;
+        })
+        .catch(() => guardado);
+      return guardado || red;
     })
   );
-  return self.clients.claim(); 
 });
